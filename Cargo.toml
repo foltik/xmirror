@@ -1,0 +1,21 @@
+[workspace]
+resolver = "2"
+members = ["client", "server", "event"]
+
+[workspace.package]
+authors = ["Jack Foltz <jack@foltz.io>"]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/foltik/xmirror"
+readme = "README.md"
+keywords = ["keyboard", "mouse", "input", "x11", "macos"]
+categories = ["os", "hardware-support"]
+
+[workspace.dependencies]
+bitflags = "2"
+# Linux
+x11 = { version = "2", features = ["xlib", "xtest"] }
+# MacOS
+core-graphics = { version = "0.24", features = ["highsierra"] }
+core-foundation = "0.10"
