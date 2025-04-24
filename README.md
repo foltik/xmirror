@@ -13,12 +13,13 @@ Capture keyboard and mouse events from a local machine and mirror them to a remo
 
 Hold `Ctrl + Shift + Alt + Super` simultaneously to exit.
 
-## Installation
-
-The supported platforms are:
+## Platform Support
 
 * xmirror: MacOS
 * xmirror-server: Linux+X11
+* PRs welcome!
+
+## Installation
 
 ### From a prebuilt binary
 
@@ -27,12 +28,7 @@ Download your binary of choice from the [releases page](https://github.com/folti
 ### From source (via crates.io)
 
 ```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 cargo install xmirror
 cargo install xmirror-server
 ```
-
-## Development
-
-This project uses Nix flakes for a dev environment with dependencies. With Nix installed, run `nix develop` to enter a dev shell with the right tools and dependencies for your platform.
-
-If you have direnv installed, run `direnv allow .` to automatically start a dev shell when entering the project directory.
