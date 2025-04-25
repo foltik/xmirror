@@ -134,7 +134,7 @@ dependencies = [
 
 [[package]]
 name = "xmirror"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "core-foundation",
  "core-graphics",
@@ -143,14 +143,14 @@ dependencies = [
 
 [[package]]
 name = "xmirror-event"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bitflags",
 ]
 
 [[package]]
 name = "xmirror-server"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "x11",
  "xmirror-event",

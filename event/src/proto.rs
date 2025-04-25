@@ -1,38 +1,39 @@
 //! Compact wire protocol for `Event` relying on stable ABI and enum discriminants via #[repr(C)]
 
-use std::io::{self, Read, Write};
-use std::mem::transmute;
+use std::io::{self, Write};
 
 use crate::{Event, Key, Mods, Mouse};
 
 impl Event {
-    /// Maximum size of an Event packet
-    pub const MTU: usize = 3;
+    pub const SIZE: usize = 3;
 
     #[rustfmt::skip]
     pub fn encode<W: Write>(self, w: &mut W) -> io::Result<()> {
         match self {
-            Event::KeyDown(k)   => w.write_all(&[1, k as u8])?,
-            Event::KeyUp(k)     => w.write_all(&[2, k as u8])?,
-            Event::Mods(m)      => w.write_all(&[3, m.bits()])?,
-            Event::MouseDown(b) => w.write_all(&[4, b as u8])?,
-            Event::MouseUp(b)   => w.write_all(&[5, b as u8])?,
-            Event::MouseMove { dx, dy } => unsafe { w.write_all(&[6, transmute(dx), transmute(dy)])? },
-            Event::Scroll { dx, dy } => unsafe { w.write_all(&[7, transmute(dx), transmute(dy)])? },
+            Event::KeyDown(k)   => w.write_all(&[1, k as u8,  0])?,
+            Event::KeyUp(k)     => w.write_all(&[2, k as u8,  0])?,
+            Event::Mods(m)      => w.write_all(&[3, m.bits(), 0])?,
+            Event::MouseDown(b) => w.write_all(&[4, b as u8,  0])?,
+            Event::MouseUp(b)   => w.write_all(&[5, b as u8,  0])?,
+            Event::MouseMove { dx, dy } => w.write_all(&[6, dx as u8, dy as u8])?,
+            Event::Scroll { dx, dy } => w.write_all(&[7, dx as u8, dy as u8])?,
         }
         Ok(())
     }
 
-    pub fn decode<R: Read>(r: &mut R) -> io::Result<Event> {
-        let tag = read_u8(r)?;
+    pub fn decode(packet: &[u8; Self::SIZE]) -> io::Result<Event> {
+        let [tag, byte0, byte1] = *packet;
+        let bits = byte0;
+        let (dx, dy) = (byte0 as i8, byte1 as i8);
+
         let ev = match tag {
-            1 => Event::KeyDown(read_key(read_u8(r)?)?),
-            2 => Event::KeyUp(read_key(read_u8(r)?)?),
-            3 => Event::Mods(Mods::from_bits_truncate(read_u8(r)?)),
-            4 => Event::MouseDown(read_button(read_u8(r)?)?),
-            5 => Event::MouseUp(read_button(read_u8(r)?)?),
-            6 => unsafe { Event::MouseMove { dx: transmute(read_u8(r)?), dy: transmute(read_u8(r)?) } },
-            7 => unsafe { Event::Scroll { dx: transmute(read_u8(r)?), dy: transmute(read_u8(r)?) } },
+            1 => Event::KeyDown(to_key(bits)?),
+            2 => Event::KeyUp(to_key(bits)?),
+            3 => Event::Mods(Mods::from_bits_truncate(bits)),
+            4 => Event::MouseDown(to_button(bits)?),
+            5 => Event::MouseUp(to_button(bits)?),
+            6 => Event::MouseMove { dx, dy },
+            7 => Event::Scroll { dx, dy },
             _ => return Err(io::ErrorKind::InvalidData.into()),
         };
         Ok(ev)
@@ -40,28 +41,21 @@ impl Event {
 }
 
 #[inline]
-fn read_key(byte: u8) -> io::Result<Key> {
+fn to_key(byte: u8) -> io::Result<Key> {
     const KEY_MAX: u8 = Key::F12 as u8 + 1;
     if byte < KEY_MAX {
-        Ok(unsafe { transmute(byte) })
+        Ok(unsafe { std::mem::transmute(byte) })
     } else {
         Err(io::ErrorKind::InvalidData.into())
     }
 }
 
 #[inline]
-fn read_button(byte: u8) -> io::Result<Mouse> {
+fn to_button(byte: u8) -> io::Result<Mouse> {
     const BUTTON_MAX: u8 = Mouse::Middle as u8 + 1;
     if byte < BUTTON_MAX {
-        Ok(unsafe { transmute(byte) })
+        Ok(unsafe { std::mem::transmute(byte) })
     } else {
         Err(io::ErrorKind::InvalidData.into())
     }
-}
-
-#[inline]
-fn read_u8<R: Read>(r: &mut R) -> io::Result<u8> {
-    let mut b = [0];
-    r.read_exact(&mut b)?;
-    Ok(b[0])
 }

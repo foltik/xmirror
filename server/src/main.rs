@@ -43,14 +43,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn accept(platform: &Platform, mut stream: TcpStream) -> Result<(), Box<dyn std::error::Error>> {
     stream.set_nodelay(true)?;
 
-    let mut buf = [0u8; Event::MTU];
+    let mut packet = [0u8; Event::SIZE];
     loop {
-        let n = stream.read(&mut buf)?;
-        if n == 0 {
-            return Ok(());
+        match stream.read_exact(&mut packet) {
+            Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => return Ok(()),
+            Err(e) => return Err(e.into()),
+            Ok(()) => {}
         }
 
-        let event = Event::decode(&mut &buf[..n])?;
+        let event = Event::decode(&packet)?;
         platform.emulate(event)?;
     }
 }
